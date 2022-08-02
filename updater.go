@@ -124,7 +124,6 @@ func (uc *UpdateConfig) ExecuteUpdate() {
 		}
 
 		log.Printf("ERROR - Failed to execute post-upgrade command: %v\n", err)
-		break
 	}
 
 	output, err = executeCommand("systemctl restart " + uc.ServiceName)
@@ -136,11 +135,11 @@ func (uc *UpdateConfig) ExecuteUpdate() {
 
 func (uc UpdateConfig) validate() error {
 	if uc.ServiceName == "" {
-		return fmt.Errorf("Missing service name on config")
+		return fmt.Errorf("missing service name on config")
 	}
 
 	if uc.UpgradeCmd == "" {
-		return fmt.Errorf("Missing upgrade command on config")
+		return fmt.Errorf("missing upgrade command on config")
 	}
 
 	return nil
@@ -157,10 +156,14 @@ func executeCommand(command string) (string, error) {
 
 func printHelpMessage() {
 	fmt.Println("This is a CLI for updating Matrix components registered as systemd services. It assumes apt is installed on server.")
-	fmt.Printf("Command: matrix-systemd-updater -component [COMPONENT NAME] -serviceName [SERVICE NAME] -packageName [PACKAGE NAME]\n\n")
+	fmt.Printf("Command: matrix-systemd-updater { -help | [-directory] filepath }\n\n")
+	fmt.Println("Arguments:")
+	fmt.Println(
+		"filepath: `filepath` specifies the path to the YAML file that contains the configuration " +
+			"for this update. This YAML file must contain a field called `serviceName` (the systemd service to update) " +
+			"and a field called `upgradeCmd` (the command to run to update the service).",
+	)
 	fmt.Println("Options:")
-	fmt.Println("-component: Required. The name of the component to update. Options currently are SYNAPSE, WHATSAPP, and KAKAO")
-	fmt.Println("-serviceName: Optional. The systemd service to restart. If not specified, the component updater will print the default service being used")
-	fmt.Println("-packageName: Optional. The apt package to update. If not specified, the component updater will print the default package being used")
+	fmt.Println("-directory: Optional. indicates the filepath is a directory containing the update configfiles")
 	fmt.Println("-help: Optional. Print this messgae and exit")
 }
