@@ -168,7 +168,7 @@ func executeCommand(command *ConfigCommand) (string, error) {
 		updateCmd = exec.Command(command.Command, command.Args...)
 	}
 
-	output, err := updateCmd.Output()
+	output, err := updateCmd.CombinedOutput()
 	return string(output), err
 }
 
