@@ -41,7 +41,7 @@ func main() {
 
 	configFiles := buildUpdateConfigFiles(configPath, *isDirectory)
 	for _, configFile := range configFiles {
-		err := configFile.ExecuteUpdate()
+		err := configFile.executeUpdate()
 		if err != nil {
 			log.Printf("ERROR - Failed up to update systemd component %s due to error: %v\n", configFile.ServiceName, err)
 		}
@@ -94,7 +94,7 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 	return configFiles
 }
 
-func (uc *UpdateConfig) ExecuteUpdate() error {
+func (uc *UpdateConfig) executeUpdate() error {
 	log.Printf("Executing Update for Service: %v\n", uc.ServiceName)
 	for _, preUpgradeCmd := range uc.PreUpgradeCmds {
 		output, err := executeCommand(preUpgradeCmd)
@@ -146,28 +146,6 @@ func (uc UpdateConfig) validate() error {
 	return nil
 }
 
-func parseCommand(command string) map[string]string {
-	matchesByKeyword := make(map[string]string)
-	if !CMD_REGEX.MatchString(command) {
-		return matchesByKeyword
-	}
-
-	matches := CMD_REGEX.FindStringSubmatch(command)
-	cmdIndex := CMD_REGEX.SubexpIndex("cmd")
-	argsIndex := CMD_REGEX.SubexpIndex("args")
-
-	if cmdIndex > -1 && matches[cmdIndex] != "" {
-		matchesByKeyword["cmd"] = matches[cmdIndex]
-	}
-
-	if argsIndex > -1 && matches[argsIndex] != "" {
-		matchesByKeyword["args"] = matches[argsIndex]
-	}
-
-	log.Println(matchesByKeyword)
-	return matchesByKeyword
-}
-
 func executeCommand(command *ConfigCommand) (string, error) {
 	var updateCmd *exec.Cmd
 	if command.Args == nil || len(command.Args) == 0 {
@@ -182,7 +160,7 @@ func executeCommand(command *ConfigCommand) (string, error) {
 
 func printHelpMessage() {
 	fmt.Println("This is a CLI for updating Matrix components registered as systemd services. It assumes apt is installed on server.")
-	fmt.Printf("Command: matrix-systemd-updater { -help | [-directory] filepath }\n\n")
+	fmt.Printf("Command: matrix-systemd-updater { -help | [-configDirectory] filepath }\n\n")
 	fmt.Println("Arguments:")
 	fmt.Println(
 		"filepath: `filepath` specifies the path to the YAML file that contains the configuration " +
@@ -190,6 +168,6 @@ func printHelpMessage() {
 			"and a field called `upgradeCmd` (the command to run to update the service).",
 	)
 	fmt.Println("Options:")
-	fmt.Println("-directory: Optional. indicates the filepath is a directory containing the update configfiles")
+	fmt.Println("-configDirectory: Optional. indicates the filepath is a directory containing the update configfiles")
 	fmt.Println("-help: Optional. Print this messgae and exit")
 }
