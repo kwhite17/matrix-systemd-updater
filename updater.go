@@ -7,9 +7,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
+
+var CMD_REGEX = regexp.MustCompile(`(?P<cmd>\S*)\s?(?P<args>.*)`)
 
 type UpdateConfig struct {
 	fileName        string
@@ -33,7 +36,10 @@ func main() {
 
 	configFiles := buildUpdateConfigFiles(configPath, *isDirectory)
 	for _, configFile := range configFiles {
-		configFile.ExecuteUpdate()
+		err := configFile.ExecuteUpdate()
+		if err != nil {
+			log.Printf("ERROR - Failed up to update systemd component %s due to error: %v\n", configFile.ServiceName, err)
+		}
 	}
 }
 
@@ -83,9 +89,8 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 	return configFiles
 }
 
-func (uc *UpdateConfig) ExecuteUpdate() {
+func (uc *UpdateConfig) ExecuteUpdate() error {
 	log.Printf("Executing Update for Service: %v\n", uc.ServiceName)
-	exitOnErr := false
 	for _, preUpgradeCmd := range uc.PreUpgradeCmds {
 		output, err := executeCommand(preUpgradeCmd)
 		log.Println(output)
@@ -93,34 +98,24 @@ func (uc *UpdateConfig) ExecuteUpdate() {
 			continue
 		}
 
-		log.Printf("ERROR - Failed to execute pre-upgrade command: %v\n", err)
 		if uc.ExitOnError {
-			exitOnErr = true
-			break
+			return fmt.Errorf("failed to execute pre-upgrade command: %v", err)
+		} else {
+			log.Printf("ERROR - Failed to execute pre-upgrade command: %v\n", err)
 		}
-	}
-
-	if exitOnErr {
-		output, err := executeCommand("systemctl restart " + uc.ServiceName)
-		log.Println(output)
-		if err != nil {
-			log.Printf("ERROR - Failed to execute service restart command: %v\n", err)
-		}
-
-		return
 	}
 
 	output, err := executeCommand(uc.UpgradeCmd)
 	log.Println(output)
 	if err != nil {
-		log.Fatalf("ERROR - Failed to execute upgrade command: %v\n", err)
+		return fmt.Errorf("failed to execute upgrade command: %v", err)
 	}
 
 	for _, postUpgradeCmd := range uc.PostUpgradeCmds {
 		output, err := executeCommand(postUpgradeCmd)
+		log.Println(output)
 		if err == nil {
-			log.Println(output)
-			return
+			continue
 		}
 
 		log.Printf("ERROR - Failed to execute post-upgrade command: %v\n", err)
@@ -129,8 +124,9 @@ func (uc *UpdateConfig) ExecuteUpdate() {
 	output, err = executeCommand("systemctl restart " + uc.ServiceName)
 	log.Println(output)
 	if err != nil {
-		log.Printf("ERROR - Failed to execute service restart command: %v\n", err)
+		return fmt.Errorf("failed to execute service restart command: %v", err)
 	}
+	return nil
 }
 
 func (uc UpdateConfig) validate() error {
@@ -145,8 +141,42 @@ func (uc UpdateConfig) validate() error {
 	return nil
 }
 
+func parseCommand(command string) map[string]string {
+	matchesByKeyword := make(map[string]string)
+	if !CMD_REGEX.MatchString(command) {
+		return matchesByKeyword
+	}
+
+	matches := CMD_REGEX.FindStringSubmatch(command)
+	cmdIndex := CMD_REGEX.SubexpIndex("cmd")
+	argsIndex := CMD_REGEX.SubexpIndex("args")
+
+	if cmdIndex > -1 && matches[cmdIndex] != "" {
+		matchesByKeyword["cmd"] = matches[cmdIndex]
+	}
+
+	if argsIndex > -1 && matches[argsIndex] != "" {
+		matchesByKeyword["args"] = matches[argsIndex]
+	}
+
+	return matchesByKeyword
+}
+
 func executeCommand(command string) (string, error) {
-	updateCmd := exec.Command(command)
+	var updateCmd *exec.Cmd
+	parsedCommand := parseCommand(command)
+	cmd, cmdOk := parsedCommand["cmd"]
+	if !cmdOk {
+		return "", fmt.Errorf("unable to parse command: %s", command)
+	}
+
+	args, argsOk := parsedCommand["args"]
+	if argsOk {
+		updateCmd = exec.Command(cmd, args)
+	} else {
+		updateCmd = exec.Command(cmd)
+	}
+
 	output, err := updateCmd.Output()
 	if err == nil {
 		return "", err

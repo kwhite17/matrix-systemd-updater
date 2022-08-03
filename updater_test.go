@@ -47,6 +47,100 @@ func TestDirectoryConfigParsing(t *testing.T) {
 	assertGoodConfig(configs[0], goodConfigPath, t)
 }
 
+func TestParsesFullyQualifiedCommand(t *testing.T) {
+	qualifiedCommand := "/bin/echo 'first pre-upgrade command'"
+	parsedCommand := parseCommand(qualifiedCommand)
+	cmd, cmdOk := parsedCommand["cmd"]
+	args, argOk := parsedCommand["args"]
+	if !cmdOk {
+		t.Logf("Expected 'cmd' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if cmd != "/bin/echo" {
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "/bin/echo", cmd)
+		t.Fail()
+	}
+
+	if !argOk {
+		t.Logf("Expected 'args' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if args != "'first pre-upgrade command'" {
+		t.Logf("Expected 'args' key to correspond to value %s: Actual: %s\n", "'first pre-upgrade command'", args)
+		t.Fail()
+	}
+}
+
+func TestParsesFullyQualifiedCommandNoArgs(t *testing.T) {
+	qualifiedCommand := "/bin/echo"
+	parsedCommand := parseCommand(qualifiedCommand)
+	cmd, cmdOk := parsedCommand["cmd"]
+	_, argOk := parsedCommand["args"]
+	if !cmdOk {
+		t.Logf("Expected 'cmd' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if cmd != "/bin/echo" {
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "/bin/echo", cmd)
+		t.Fail()
+	}
+
+	if argOk {
+		t.Logf("Expected no 'args' key in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+}
+
+func TestParsesShorthandCommandNoArgs(t *testing.T) {
+	qualifiedCommand := "echo"
+	parsedCommand := parseCommand(qualifiedCommand)
+	cmd, cmdOk := parsedCommand["cmd"]
+	_, argOk := parsedCommand["args"]
+	if !cmdOk {
+		t.Logf("Expected 'cmd' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if cmd != "echo" {
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "/bin/echo", cmd)
+		t.Fail()
+	}
+
+	if argOk {
+		t.Logf("Expected no 'args' key in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+}
+
+func TestParsesShorthandCommand(t *testing.T) {
+	qualifiedCommand := "echo 'first pre-upgrade command'"
+	parsedCommand := parseCommand(qualifiedCommand)
+	cmd, cmdOk := parsedCommand["cmd"]
+	args, argOk := parsedCommand["args"]
+	if !cmdOk {
+		t.Logf("Expected 'cmd' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if cmd != "echo" {
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "/bin/echo", cmd)
+		t.Fail()
+	}
+
+	if !argOk {
+		t.Logf("Expected 'args' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if args != "'first pre-upgrade command'" {
+		t.Logf("Expected 'args' key to correspond to value %s: Actual: %s\n", "'first pre-upgrade command'", args)
+		t.Fail()
+	}
+}
+
 func assertGoodConfig(actualConfig *UpdateConfig, configPath string, t *testing.T) {
 	if actualConfig.ExitOnError {
 		t.Logf("Expected config to not exit on error but it does")
@@ -79,5 +173,4 @@ func assertGoodConfig(actualConfig *UpdateConfig, configPath string, t *testing.
 		t.Logf("Expected post-upgrade commands to be %v. Actual: %v\n", expectedPostUpgradeCmds, actualConfig.PostUpgradeCmds)
 		t.Fail()
 	}
-
 }
