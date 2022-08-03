@@ -1,0 +1,20 @@
+exitOnError: false
+serviceName: "test-matrix-component"
+preUpgradeCmds:
+    -
+        command: "echo"
+        args:
+            - "first pre-upgrade command"
+    -
+        command: "echo"
+        args:
+            - "second pre-upgrade command"
+upgradeCmd:
+    command: ""
+    args:
+        - "this is an upgradeCmd"
+postUpgradeCmds:
+    -
+        command: "echo"
+        args:
+            - "only post-upgrade command"

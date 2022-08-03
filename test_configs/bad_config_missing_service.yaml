@@ -1,0 +1,5 @@
+exitOnError: false
+upgradeCmd:
+    command: "echo"
+    args:
+        - 'this is an upgradeCmd'
