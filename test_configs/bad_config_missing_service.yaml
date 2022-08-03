@@ -1,7 +1,5 @@
 exitOnError: false
-preUpgradeCmds:
-    - "echo 'first pre-upgrade command'"
-    - "echo 'second pre-upgrade command'"
-upgradeCmd: "echo 'this is an upgradeCmd'"
-postUpgradeCmds:
-    - "echo 'only pre-upgrade command'"
+upgradeCmd:
+    command: "echo"
+    args:
+        - 'this is an upgradeCmd'

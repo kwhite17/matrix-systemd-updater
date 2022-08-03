@@ -10,7 +10,7 @@ preUpgradeCmds:
         args:
             - "second pre-upgrade command"
 upgradeCmd:
-    command: "echo"
+    command: ""
     args:
         - "this is an upgradeCmd"
 postUpgradeCmds:

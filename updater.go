@@ -16,11 +16,16 @@ var CMD_REGEX = regexp.MustCompile(`(?P<cmd>\S*)\s?(?P<args>.*)`)
 
 type UpdateConfig struct {
 	fileName        string
-	ExitOnError     bool     `yaml:"exitOnError"`
-	ServiceName     string   `yaml:"serviceName"`
-	PreUpgradeCmds  []string `yaml:"preUpgradeCmds"`
-	UpgradeCmd      string   `yaml:"upgradeCmd"`
-	PostUpgradeCmds []string `yaml:"postUpgradeCmds"`
+	ExitOnError     bool             `yaml:"exitOnError"`
+	ServiceName     string           `yaml:"serviceName"`
+	PreUpgradeCmds  []*ConfigCommand `yaml:"preUpgradeCmds"`
+	UpgradeCmd      *ConfigCommand   `yaml:"upgradeCmd"`
+	PostUpgradeCmds []*ConfigCommand `yaml:"postUpgradeCmds"`
+}
+
+type ConfigCommand struct {
+	Command string   `yaml:"command"`
+	Args    []string `yaml:"args"`
 }
 
 func main() {
@@ -121,7 +126,7 @@ func (uc *UpdateConfig) ExecuteUpdate() error {
 		log.Printf("ERROR - Failed to execute post-upgrade command: %v\n", err)
 	}
 
-	output, err = executeCommand("systemctl restart " + uc.ServiceName)
+	output, err = executeCommand(&ConfigCommand{Command: "systemctl", Args: []string{"restart", uc.ServiceName}})
 	log.Println(output)
 	if err != nil {
 		return fmt.Errorf("failed to execute service restart command: %v", err)
@@ -134,7 +139,7 @@ func (uc UpdateConfig) validate() error {
 		return fmt.Errorf("missing service name on config")
 	}
 
-	if uc.UpgradeCmd == "" {
+	if uc.UpgradeCmd == nil || uc.UpgradeCmd.Command == "" {
 		return fmt.Errorf("missing upgrade command on config")
 	}
 
@@ -163,19 +168,12 @@ func parseCommand(command string) map[string]string {
 	return matchesByKeyword
 }
 
-func executeCommand(command string) (string, error) {
+func executeCommand(command *ConfigCommand) (string, error) {
 	var updateCmd *exec.Cmd
-	parsedCommand := parseCommand(command)
-	cmd, cmdOk := parsedCommand["cmd"]
-	if !cmdOk {
-		return "", fmt.Errorf("unable to parse command: %s", command)
-	}
-
-	args, argsOk := parsedCommand["args"]
-	if argsOk {
-		updateCmd = exec.Command(cmd, args)
+	if command.Args == nil || len(command.Args) == 0 {
+		updateCmd = exec.Command(command.Command)
 	} else {
-		updateCmd = exec.Command(cmd)
+		updateCmd = exec.Command(command.Command, command.Args...)
 	}
 
 	output, err := updateCmd.Output()

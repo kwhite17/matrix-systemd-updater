@@ -1,7 +1,2 @@
 exitOnError: false
 serviceName: "test-matrix-component"
-preUpgradeCmds:
-    - "echo 'first pre-upgrade command'"
-    - "echo 'second pre-upgrade command'"
-postUpgradeCmds:
-    - "echo 'only pre-upgrade command'"
