@@ -33,6 +33,15 @@ func TestBlankUpgradeBadConfig(t *testing.T) {
 	}
 }
 
+func TestNoExitWithWorkingDirectoryBadConfig(t *testing.T) {
+	configPath := "test_configs/bad_config_working_directory_no_exit.yaml"
+	configs := buildUpdateConfigFiles(configPath, false)
+	if len(configs) != 0 {
+		t.Logf("Expected config path %s to generate %d configs. Actual %d\n", configPath, 0, len(configs))
+		t.Fail()
+	}
+}
+
 func TestGoodConfig(t *testing.T) {
 	configPath := "test_configs/good_config.yaml"
 	configs := buildUpdateConfigFiles(configPath, false)
