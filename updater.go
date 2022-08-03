@@ -11,12 +11,13 @@ import (
 )
 
 type UpdateConfig struct {
-	fileName        string
-	ExitOnError     bool             `yaml:"exitOnError"`
-	ServiceName     string           `yaml:"serviceName"`
-	PreUpgradeCmds  []*ConfigCommand `yaml:"preUpgradeCmds"`
-	UpgradeCmd      *ConfigCommand   `yaml:"upgradeCmd"`
-	PostUpgradeCmds []*ConfigCommand `yaml:"postUpgradeCmds"`
+	fileName         string
+	WorkingDirectory string           `yaml:"workingDirectory"`
+	ExitOnError      bool             `yaml:"exitOnError"`
+	ServiceName      string           `yaml:"serviceName"`
+	PreUpgradeCmds   []*ConfigCommand `yaml:"preUpgradeCmds"`
+	UpgradeCmd       *ConfigCommand   `yaml:"upgradeCmd"`
+	PostUpgradeCmds  []*ConfigCommand `yaml:"postUpgradeCmds"`
 }
 
 type ConfigCommand struct {
@@ -93,6 +94,13 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 
 func (uc *UpdateConfig) executeUpdate() error {
 	fmt.Fprintf(os.Stdout, "Executing Update for Service: %v\n", uc.ServiceName)
+	if uc.WorkingDirectory != "" {
+		wdErr := os.Chdir(uc.WorkingDirectory)
+		if wdErr != nil {
+			return wdErr
+		}
+	}
+
 	for _, preUpgradeCmd := range uc.PreUpgradeCmds {
 		output, err := executeCommand(preUpgradeCmd)
 		fmt.Fprintln(os.Stdout, output)
@@ -138,6 +146,10 @@ func (uc UpdateConfig) validate() error {
 
 	if uc.UpgradeCmd == nil || uc.UpgradeCmd.Command == "" {
 		return fmt.Errorf("missing upgrade command on config")
+	}
+
+	if uc.WorkingDirectory != "" && !uc.ExitOnError {
+		return fmt.Errorf("non-nil or non-empty working directory must exit on any pre-ugrade errors")
 	}
 
 	return nil

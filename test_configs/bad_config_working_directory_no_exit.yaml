@@ -1,0 +1,21 @@
+exitOnError: false
+serviceName: "test-matrix-component"
+workingDirectory: "/opt/matrix-bridges"
+preUpgradeCmds:
+    -
+        command: "echo"
+        args:
+            - "first pre-upgrade command"
+    -
+        command: "echo"
+        args:
+            - "second pre-upgrade command"
+upgradeCmd:
+    command: "echo"
+    args:
+        - "this is an upgradeCmd"
+postUpgradeCmds:
+    -
+        command: "echo"
+        args:
+            - "only post-upgrade command"
