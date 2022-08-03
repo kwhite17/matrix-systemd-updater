@@ -178,9 +178,6 @@ func executeCommand(command string) (string, error) {
 	}
 
 	output, err := updateCmd.Output()
-	if err == nil {
-		return "", err
-	}
 	return string(output), err
 }
 
