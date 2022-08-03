@@ -126,7 +126,7 @@ func TestParsesShorthandCommand(t *testing.T) {
 	}
 
 	if cmd != "echo" {
-		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "/bin/echo", cmd)
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "echo", cmd)
 		t.Fail()
 	}
 
@@ -137,6 +137,32 @@ func TestParsesShorthandCommand(t *testing.T) {
 
 	if args != "'first pre-upgrade command'" {
 		t.Logf("Expected 'args' key to correspond to value %s: Actual: %s\n", "'first pre-upgrade command'", args)
+		t.Fail()
+	}
+}
+
+func TestParsesShorthandCommandMultiArgs(t *testing.T) {
+	qualifiedCommand := "apt upgrade matrix-synapse-py3"
+	parsedCommand := parseCommand(qualifiedCommand)
+	cmd, cmdOk := parsedCommand["cmd"]
+	args, argOk := parsedCommand["args"]
+	if !cmdOk {
+		t.Logf("Expected 'cmd' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if cmd != "apt" {
+		t.Logf("Expected 'cmd' key to correspond to value %s: Actual: %s\n", "apt", cmd)
+		t.Fail()
+	}
+
+	if !argOk {
+		t.Logf("Expected 'args' key to exist in map for command: %s\n", qualifiedCommand)
+		t.FailNow()
+	}
+
+	if args != "upgrade matrix-synapse-py3" {
+		t.Logf("Expected 'args' key to correspond to value %s: Actual: %s\n", "upgrade matrix-synapse-py3", args)
 		t.Fail()
 	}
 }

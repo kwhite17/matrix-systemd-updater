@@ -159,6 +159,7 @@ func parseCommand(command string) map[string]string {
 		matchesByKeyword["args"] = matches[argsIndex]
 	}
 
+	log.Println(matchesByKeyword)
 	return matchesByKeyword
 }
 
