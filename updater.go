@@ -3,16 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 
 	"gopkg.in/yaml.v3"
 )
-
-var CMD_REGEX = regexp.MustCompile(`(?P<cmd>\S*)\s?(?P<args>.*)`)
 
 type UpdateConfig struct {
 	fileName        string
@@ -43,7 +39,7 @@ func main() {
 	for _, configFile := range configFiles {
 		err := configFile.executeUpdate()
 		if err != nil {
-			log.Printf("ERROR - Failed up to update systemd component %s due to error: %v\n", configFile.ServiceName, err)
+			fmt.Fprintf(os.Stderr, "ERROR - Failed up to update systemd component %s due to error: %v\n", configFile.ServiceName, err)
 		}
 	}
 }
@@ -53,7 +49,8 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 	if isDirectory {
 		entries, err := os.ReadDir(configPath)
 		if err != nil {
-			log.Fatalln(err)
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 
 		for _, entry := range entries {
@@ -71,7 +68,7 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 	for _, filename := range configFileNames {
 		file, fileErr := os.Open(filename)
 		if fileErr != nil {
-			log.Printf("ERROR - Failed to open file: %s - %v\n", filename, fileErr)
+			fmt.Fprintf(os.Stderr, "ERROR - Failed to open file: %s - %v\n", filename, fileErr)
 			continue
 		}
 
@@ -79,7 +76,7 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 		decodeErr := yaml.NewDecoder(file).Decode(&configFile)
 		configFile.fileName = filename
 		if decodeErr != nil {
-			log.Printf("ERROR - Failed to decode config file: %s - %v\n", filename, decodeErr)
+			fmt.Fprintf(os.Stderr, "ERROR - Failed to decode config file: %s - %v\n", filename, decodeErr)
 			continue
 		}
 
@@ -87,7 +84,7 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 		if validateErr == nil {
 			configFiles = append(configFiles, &configFile)
 		} else {
-			log.Printf("ERROR - Config file is invalid: %v\n", validateErr)
+			fmt.Fprintf(os.Stderr, "ERROR - Config file is invalid: %v\n", validateErr)
 		}
 	}
 
@@ -95,10 +92,10 @@ func buildUpdateConfigFiles(configPath string, isDirectory bool) []*UpdateConfig
 }
 
 func (uc *UpdateConfig) executeUpdate() error {
-	log.Printf("Executing Update for Service: %v\n", uc.ServiceName)
+	fmt.Fprintf(os.Stdout, "Executing Update for Service: %v\n", uc.ServiceName)
 	for _, preUpgradeCmd := range uc.PreUpgradeCmds {
 		output, err := executeCommand(preUpgradeCmd)
-		log.Println(output)
+		fmt.Fprintln(os.Stdout, output)
 		if err == nil {
 			continue
 		}
@@ -106,28 +103,28 @@ func (uc *UpdateConfig) executeUpdate() error {
 		if uc.ExitOnError {
 			return fmt.Errorf("failed to execute pre-upgrade command: %v", err)
 		} else {
-			log.Printf("ERROR - Failed to execute pre-upgrade command: %v\n", err)
+			fmt.Fprintf(os.Stderr, "ERROR - Failed to execute pre-upgrade command: %v\n", err)
 		}
 	}
 
 	output, err := executeCommand(uc.UpgradeCmd)
-	log.Println(output)
+	fmt.Fprintln(os.Stdout, output)
 	if err != nil {
 		return fmt.Errorf("failed to execute upgrade command: %v", err)
 	}
 
 	for _, postUpgradeCmd := range uc.PostUpgradeCmds {
 		output, err := executeCommand(postUpgradeCmd)
-		log.Println(output)
+		fmt.Fprintln(os.Stdout, output)
 		if err == nil {
 			continue
 		}
 
-		log.Printf("ERROR - Failed to execute post-upgrade command: %v\n", err)
+		fmt.Fprintf(os.Stderr, "ERROR - Failed to execute post-upgrade command: %v\n", err)
 	}
 
 	output, err = executeCommand(&ConfigCommand{Command: "systemctl", Args: []string{"restart", uc.ServiceName}})
-	log.Println(output)
+	fmt.Fprintln(os.Stdout, output)
 	if err != nil {
 		return fmt.Errorf("failed to execute service restart command: %v", err)
 	}
@@ -159,15 +156,16 @@ func executeCommand(command *ConfigCommand) (string, error) {
 }
 
 func printHelpMessage() {
-	fmt.Println("This is a CLI for updating Matrix components registered as systemd services. It assumes apt is installed on server.")
-	fmt.Printf("Command: matrix-systemd-updater { -help | [-configDirectory] filepath }\n\n")
-	fmt.Println("Arguments:")
-	fmt.Println(
-		"filepath: `filepath` specifies the path to the YAML file that contains the configuration " +
-			"for this update. This YAML file must contain a field called `serviceName` (the systemd service to update) " +
+	fmt.Fprintln(os.Stdout, "This is a CLI for updating Matrix components registered as systemd services. It assumes apt is installed on server.")
+	fmt.Fprintf(os.Stdout, "Command: matrix-systemd-updater { -help | [-configDirectory] filepath }\n\n")
+	fmt.Fprintln(os.Stdout, "Arguments:")
+	fmt.Fprintln(
+		os.Stdout,
+		"filepath: `filepath` specifies the path to the YAML file that contains the configuration "+
+			"for this update. This YAML file must contain a field called `serviceName` (the systemd service to update) "+
 			"and a field called `upgradeCmd` (the command to run to update the service).",
 	)
-	fmt.Println("Options:")
-	fmt.Println("-configDirectory: Optional. indicates the filepath is a directory containing the update configfiles")
-	fmt.Println("-help: Optional. Print this messgae and exit")
+	fmt.Fprintln(os.Stdout, "Options:")
+	fmt.Fprintln(os.Stdout, "-configDirectory: Optional. indicates the filepath is a directory containing the update configfiles")
+	fmt.Fprintln(os.Stdout, "-help: Optional. Print this messgae and exit")
 }
