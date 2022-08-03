@@ -97,7 +97,7 @@ func (uc *UpdateConfig) executeUpdate() error {
 	if uc.WorkingDirectory != "" {
 		wdErr := os.Chdir(uc.WorkingDirectory)
 		if wdErr != nil {
-			return wdErr
+			return fmt.Errorf("failed to change working directory to %s due to error %v", uc.WorkingDirectory, wdErr)
 		}
 	}
 
@@ -114,9 +114,11 @@ func (uc *UpdateConfig) executeUpdate() error {
 			fmt.Fprintf(os.Stderr, "ERROR - Failed to execute pre-upgrade command: %v\n", err)
 		}
 	}
+	fmt.Fprintln(os.Stdout, "Pre-upgrade commands complete. Executing upgrade...")
 
 	output, err := executeCommand(uc.UpgradeCmd)
 	fmt.Fprintln(os.Stdout, output)
+	fmt.Fprintln(os.Stdout, "Upgrade command complete. Performing post-update commands...")
 	if err != nil {
 		return fmt.Errorf("failed to execute upgrade command: %v", err)
 	}
@@ -130,12 +132,15 @@ func (uc *UpdateConfig) executeUpdate() error {
 
 		fmt.Fprintf(os.Stderr, "ERROR - Failed to execute post-upgrade command: %v\n", err)
 	}
+	fmt.Fprintln(os.Stdout, "Post-upgrade commands complete. Restarting service...")
 
 	output, err = executeCommand(&ConfigCommand{Command: "systemctl", Args: []string{"restart", uc.ServiceName}})
 	fmt.Fprintln(os.Stdout, output)
 	if err != nil {
 		return fmt.Errorf("failed to execute service restart command: %v", err)
 	}
+
+	fmt.Fprintf(os.Stdout, "Upgrade of service %s complete!\n", uc.ServiceName)
 	return nil
 }
 
