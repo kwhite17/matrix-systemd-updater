@@ -3,6 +3,17 @@
 ## Purpose
 The Matrix Systemd Updater was initially created for the purpose of being able to, in conjuction with `crontab` automate the updating of Matrix homeservers and bridges. Ultimately, what was produced may well be a general purpose systemd updater utility.
 
+## Installation
+
+### Prequisites
+* Systemd installed on your Linux distribution
+* Go 1.12+ (whenever modules were introduced)
+
+### Instructions
+1. Ensure that your $GOROOT is a part of your $PATH
+2. Navigate to the root of this directory
+3. Run `go install`.
+
 ## Usage
 The usage of the updater is pretty straightforward:
 
